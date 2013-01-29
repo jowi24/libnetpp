@@ -1,7 +1,7 @@
 /*
- * libfritz++
+ * libnet++
  *
- * Copyright (C) 2007-2012 Joachim Wilke <libfritz@joachim-wilke.de>
+ * Copyright (C) 2007-2013 Joachim Wilke <libnet@joachim-wilke.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 
 #include <liblog++/Log.h>
 
-namespace fritz {
+namespace network {
 
 HttpClient::HttpClient(const std::string &host, int port)
 : TcpClient{host, port} {
@@ -35,7 +35,7 @@ HttpClient::HttpClient(const std::string &host, int port)
 HttpClient::~HttpClient() {
 }
 
-HttpClient::response_t HttpClient::ParseResponse() {
+HttpClient::response_t HttpClient::parseResponse() {
 	header_t header;
 	body_t body;
 
@@ -69,9 +69,9 @@ HttpClient::response_t HttpClient::ParseResponse() {
 	return response_t(header, body);
 }
 
-std::string HttpClient::SendRequest(const std::string &request, const std::ostream &postdata, const header_t &header) {
+std::string HttpClient::sendRequest(const std::string &request, const std::ostream &postdata, const header_t &header) {
 	if (!connected)
-		Connect();
+		connectStream();
 	std::stringstream post;
 	post << postdata.rdbuf();
 	int postContentLength = post.str().length();
@@ -91,19 +91,19 @@ std::string HttpClient::SendRequest(const std::string &request, const std::ostre
 	else
 		*stream << "\r\n" << std::flush;
 
-	response_t response = ParseResponse();
-	Disconnect();
+	response_t response = parseResponse();
+	disconnectStream();
 
 	// check for redirection
 	header_t responseHeader = response.first;
 	if (responseHeader["Location"].length() > 0) {
 		DBG("Redirect requested to " << responseHeader["Location"]);
-		return GetURL(responseHeader["Location"]);
+		return getURL(responseHeader["Location"]);
 	}
 	return response.second;
 }
 
-std::string HttpClient::Get(const std::string& url, const param_t &params, const header_t &header) {
+std::string HttpClient::get(const std::string& url, const param_t &params, const header_t &header) {
 	std::stringstream ss;
 	if (url.find('?') == std::string::npos)
 		ss << url << "?";
@@ -111,10 +111,10 @@ std::string HttpClient::Get(const std::string& url, const param_t &params, const
 		ss << url << "&";
 	for (auto parameter: params)
 		ss << parameter.first << "=" << parameter.second << "&";
-	return SendRequest(ss.str(), std::ostringstream(), header);
+	return sendRequest(ss.str(), std::ostringstream(), header);
 }
 
-std::string HttpClient::Post(const std::string &request, const param_t &postdata, const header_t &header) {
+std::string HttpClient::post(const std::string &request, const param_t &postdata, const header_t &header) {
 	header_t fullheader = {
 			{ "Content-Type", "application/x-www-form-urlencoded" }
 	};
@@ -124,10 +124,10 @@ std::string HttpClient::Post(const std::string &request, const param_t &postdata
 	for (auto parameter : postdata)
 			ss << parameter.first << "=" << parameter.second << "&";
 
-	return SendRequest(request, ss, fullheader);
+	return sendRequest(request, ss, fullheader);
 }
 
-std::string HttpClient::GetURL(const std::string &url, const header_t &header) {
+std::string HttpClient::getURL(const std::string &url, const header_t &header) {
 	//TODO support other port
 	//TODO support HTTPS
 
@@ -143,10 +143,10 @@ std::string HttpClient::GetURL(const std::string &url, const header_t &header) {
 		throw std::runtime_error("Invalid protocol in url.");
 
 	HttpClient client(host);
-	return client.Get(request, param_t(), header);
+	return client.get(request, param_t(), header);
 }
 
-std::string HttpClient::PostMIME(const std::string &request, const param_t &postdata, const header_t &header) {
+std::string HttpClient::postMIME(const std::string &request, const param_t &postdata, const header_t &header) {
 
 	const std::string boundary = "----FormBoundaryZMsGfL5JxTz5LuAW";
 	header_t fullheader = {
@@ -163,7 +163,7 @@ std::string HttpClient::PostMIME(const std::string &request, const param_t &post
 		   << "\r\n";
 	}
 	ss << "--" << boundary << "--\r\n";
-	return SendRequest(request, ss, fullheader);
+	return sendRequest(request, ss, fullheader);
 }
 
 }

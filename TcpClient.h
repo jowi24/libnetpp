@@ -1,7 +1,7 @@
 /*
- * libfritz++
+ * libnet++
  *
- * Copyright (C) 2007-2012 Joachim Wilke <libfritz@joachim-wilke.de>
+ * Copyright (C) 2007-2013 Joachim Wilke <libnet@joachim-wilke.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 
 #include <boost/asio.hpp>
 
-namespace fritz {
+namespace network {
 
 class TcpClient {
 protected:
@@ -32,13 +32,13 @@ protected:
 	int port;
 	bool connected;
 	boost::asio::ip::tcp::iostream *stream;
-	void Connect();
-	void Disconnect();
+	void connectStream();
+	void disconnectStream();
 public:
 	TcpClient(const std::string &host, int port);
 	virtual ~TcpClient();
-	std::string ReadLine(bool removeNewline = true);
-	void Write(const std::string &data);
+	std::string readLine(bool removeNewline = true);
+	void write(const std::string &data);
 };
 
 }

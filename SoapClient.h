@@ -1,7 +1,7 @@
 /*
- * libfritz++
+ * libnet++
  *
- * Copyright (C) 2007-2012 Joachim Wilke <libfritz@joachim-wilke.de>
+ * Copyright (C) 2007-2013 Joachim Wilke <libnet@joachim-wilke.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 
 #include "HttpClient.h"
 
-namespace fritz {
+namespace network {
 
 class SoapClient : public HttpClient {
 private:
@@ -32,7 +32,7 @@ private:
 public:
 	explicit SoapClient(const std::string &host, int port = 80);
 	virtual ~SoapClient();
-	std::string Post(const std::string &request, const std::string &action, const std::string &body);
+	std::string post(const std::string &request, const std::string &action, const std::string &body);
 
 };
 

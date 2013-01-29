@@ -1,7 +1,7 @@
 /*
- * libfritz++
+ * libnet++
  *
- * Copyright (C) 2007-2012 Joachim Wilke <libfritz@joachim-wilke.de>
+ * Copyright (C) 2007-2013 Joachim Wilke <libnet@joachim-wilke.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,11 +20,12 @@
  */
 
 #include "TcpClient.h"
+
 #include <liblog++/Log.h>
 
-namespace fritz {
+namespace network {
 
-void TcpClient::Connect() {
+void TcpClient::connectStream() {
 	DBG("Connecting to " << host << ":" << port);
 	std::string sPort = static_cast<std::stringstream&>(std::stringstream().flush() << port).str();
 	stream = new boost::asio::ip::tcp::iostream(host, sPort);
@@ -41,9 +42,9 @@ TcpClient::TcpClient(const std::string &host, int port)
 TcpClient::~TcpClient() {
 }
 
-std::string TcpClient::ReadLine(bool removeNewline) {
+std::string TcpClient::readLine(bool removeNewline) {
 	if (!connected)
-		Connect();
+		connectStream();
 	std::string line;
 	std::getline(*stream, line);
 	if (line.length() > 0 && removeNewline)
@@ -51,7 +52,7 @@ std::string TcpClient::ReadLine(bool removeNewline) {
 	return line;
 }
 
-void TcpClient::Disconnect() {
+void TcpClient::disconnectStream() {
 	if (stream) {
 		stream->close();
 		delete stream;
@@ -59,9 +60,9 @@ void TcpClient::Disconnect() {
 	connected = false;
 }
 
-void TcpClient::Write(const std::string &data) {
+void TcpClient::write(const std::string &data) {
 	if (!connected)
-		Connect();
+		connectStream();
 	*stream << data;
 }
 

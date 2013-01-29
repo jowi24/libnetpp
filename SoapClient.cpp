@@ -1,7 +1,7 @@
 /*
- * libfritz++
+ * libnet++
  *
- * Copyright (C) 2007-2012 Joachim Wilke <libfritz@joachim-wilke.de>
+ * Copyright (C) 2007-2013 Joachim Wilke <libnet@joachim-wilke.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 
 #include "SoapClient.h"
 
-namespace fritz {
+namespace network {
 
 SoapClient::SoapClient(const std::string &host, int port)
 : HttpClient{host, port} {
@@ -30,12 +30,12 @@ SoapClient::SoapClient(const std::string &host, int port)
 SoapClient::~SoapClient() {
 }
 
-std::string SoapClient::Post(const std::string &request, const std::string &action, const std::string &body) {
+std::string SoapClient::post(const std::string &request, const std::string &action, const std::string &body) {
 	header_t header = {
 			{ "Content-Type", "text/xml; charset=utf-8" },
 			{ "SOAPAction", action },
 	};
-	return SendRequest(request, std::stringstream().flush() << body, header);
+	return sendRequest(request, std::stringstream().flush() << body, header);
 }
 
 }

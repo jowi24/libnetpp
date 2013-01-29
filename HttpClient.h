@@ -1,7 +1,7 @@
 /*
- * libfritz++
+ * libnet++
  *
- * Copyright (C) 2007-2012 Joachim Wilke <libfritz@joachim-wilke.de>
+ * Copyright (C) 2007-2013 Joachim Wilke <libnet@joachim-wilke.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 
 #include "TcpClient.h"
 
-namespace fritz {
+namespace network {
 
 class HttpClient : public TcpClient {
 public:
@@ -42,15 +42,15 @@ private:
 	    {"Host", host },
 	  };
 protected:
-	std::string SendRequest(const std::string &request, const std::ostream &postdata = std::ostringstream(), const header_t &header = header_t());
-	response_t ParseResponse();
+	std::string sendRequest(const std::string &request, const std::ostream &postdata = std::ostringstream(), const header_t &header = header_t());
+	response_t parseResponse();
 public:
 	HttpClient(const std::string &host, int port = 80);
 	virtual ~HttpClient();
-	static std::string GetURL(const std::string &url, const header_t &header = header_t());
-	std::string Get     (const std::string &request, const param_t &params = param_t(), const header_t &header = header_t());
-	std::string Post    (const std::string &request, const param_t &postdata,           const header_t &header = header_t());
-	std::string PostMIME(const std::string &request, const param_t &postdata,           const header_t &header = header_t());
+	static std::string getURL(const std::string &url, const header_t &header = header_t());
+	std::string get     (const std::string &request, const param_t &params = param_t(), const header_t &header = header_t());
+	std::string post    (const std::string &request, const param_t &postdata,           const header_t &header = header_t());
+	std::string postMIME(const std::string &request, const param_t &postdata,           const header_t &header = header_t());
 };
 
 }

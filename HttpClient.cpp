@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <liblog++/Log.h>
+#include <libconv++/CharsetConverter.h>
 
 namespace network {
 
@@ -66,6 +67,23 @@ HttpClient::response_t HttpClient::parseResponse() {
     bodystream << stream->rdbuf();
     body = bodystream.str();
 	DBG("Body size " << body.length() << " Bytes.");
+
+	// check encoding and convert
+	const std::string charsetToken = "charset=";
+	const std::string& contentType = header["Content-Type"];
+	if (contentType.length()) {
+		size_t start = contentType.find(charsetToken);
+		if (start != std::string::npos) {
+			start += charsetToken.length();
+			size_t stop = contentType.find('\r', start);
+			if (stop == std::string::npos)
+				stop = contentType.find('\n', start);
+			std::string charset = std::string(contentType, start, stop-start);
+			DBG("Converting response from charset " << charset << " to local encoding.");
+			body = convert::CharsetConverter::ConvertToLocalEncoding(body, charset);
+		}
+	}
+
 	return response_t(header, body);
 }
 

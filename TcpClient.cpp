@@ -40,6 +40,7 @@ TcpClient::TcpClient(const std::string &host, int port)
 
 
 TcpClient::~TcpClient() {
+	disconnectStream();
 }
 
 std::string TcpClient::readLine(bool removeNewline) {

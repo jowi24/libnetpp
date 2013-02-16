@@ -54,7 +54,7 @@ std::string TcpClient::readLine(bool removeNewline) {
 }
 
 void TcpClient::disconnectStream() {
-	if (stream) {
+	if (stream && connected) {
 		stream->close();
 		delete stream;
 	}

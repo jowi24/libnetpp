@@ -55,6 +55,7 @@ std::string TcpClient::readLine(bool removeNewline) {
 
 void TcpClient::disconnectStream() {
 	if (stream) {
+		DBG("Disconnecting from " << host << ":" << port);
 		stream->close();
 		delete stream;
 	}

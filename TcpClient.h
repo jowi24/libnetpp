@@ -33,11 +33,12 @@ protected:
 	bool connected;
 	boost::asio::ip::tcp::iostream *stream;
 	void connectStream();
-	void disconnectStream();
 public:
+	void disconnectStream();
 	TcpClient(const std::string &host, int port);
 	virtual ~TcpClient();
 	std::string readLine(bool removeNewline = true);
+	void expireStreamNow();
 	void write(const std::string &data);
 };
 

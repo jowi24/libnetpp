@@ -60,6 +60,7 @@ void TcpClient::expireStreamNow() {
 
 void TcpClient::disconnectStream() {
 	if (stream && connected) {
+		DBG("Disconnecting from " << host << ":" << port);
 		stream->close();
 		delete stream;
 	}

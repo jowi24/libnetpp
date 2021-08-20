@@ -22,6 +22,7 @@
 #ifndef HTTPCLIENT_H
 #define HTTPCLIENT_H
 
+#include <map>
 #include <string>
 
 #include "TcpClient.h"

@@ -56,7 +56,7 @@ std::string TcpClient::readLine(bool removeNewline) {
 
 void TcpClient::expireStreamNow() {
 	if (stream)
-		stream->expires_from_now(boost::posix_time::seconds(0));
+		stream->expires_after(std::chrono::seconds(0));
 }
 
 void TcpClient::disconnectStream() {

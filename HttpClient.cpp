@@ -23,11 +23,32 @@
 
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
+#include <curl/curl.h>
+#include <mutex>
 
 #include <liblog++/Log.h>
 #include <libconv++/CharsetConverter.h>
 
 namespace network {
+
+namespace {
+std::once_flag curlInitFlag;
+
+void ensureCurlInitialized() {
+    std::call_once(curlInitFlag, []() {
+        CURLcode code = curl_global_init(CURL_GLOBAL_DEFAULT);
+        if (code != CURLE_OK)
+            throw std::runtime_error(curl_easy_strerror(code));
+    });
+}
+
+size_t appendCurlData(char *data, size_t size, size_t count, void *userData) {
+    const size_t bytes = size * count;
+    static_cast<std::string *>(userData)->append(data, bytes);
+    return bytes;
+}
+}
+
 
 HttpClient::HttpClient(const std::string &host, int port)
 : TcpClient{host, port} {
@@ -146,22 +167,90 @@ std::string HttpClient::post(const std::string &request, const param_t &postdata
 }
 
 std::string HttpClient::getURL(const std::string &url, const header_t &header) {
-	//TODO support other port
-	//TODO support HTTPS
+    ensureCurlInitialized();
 
-	size_t protoMarker = url.find("://");
-	size_t hostMarker  = url.find("/", protoMarker+4);
-	if (protoMarker == std::string::npos || hostMarker == std::string::npos)
-		throw std::runtime_error("Invalid url.");
+    CURL *curl = curl_easy_init();
+    if (!curl)
+        throw std::runtime_error("Unable to initialize libcurl");
 
-	std::string proto = url.substr(0, protoMarker);
-	std::string host  = url.substr(protoMarker+3, hostMarker-protoMarker-3);
-	std::string request = url.substr(hostMarker);
-	if (proto.compare("http") != 0)
-		throw std::runtime_error("Invalid protocol in url.");
+    std::string body;
+    struct curl_slist *headers = nullptr;
+    for (const auto &entry : header) {
+        const std::string line = entry.first + ": " + entry.second;
+        struct curl_slist *next = curl_slist_append(headers, line.c_str());
+        if (!next) {
+            if (headers)
+                curl_slist_free_all(headers);
+            curl_easy_cleanup(curl);
+            throw std::runtime_error("Unable to allocate HTTP headers");
+        }
+        headers = next;
+    }
 
-	HttpClient client(host);
-	return client.get(request, param_t(), header);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, appendCurlData);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; vdr-fritz)");
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 8L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 25L);
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+    // TLS certificate chain and hostname validation are deliberately enabled.
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+
+    // Request compressed content; libcurl transparently decompresses it.
+    curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+
+#if LIBCURL_VERSION_NUM >= 0x075500
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#endif
+
+    if (headers)
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+    CURLcode code = curl_easy_perform(curl);
+    long status = 0;
+    char *contentType = nullptr;
+    if (code == CURLE_OK) {
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+        curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &contentType);
+    }
+
+    std::string charset;
+    if (contentType) {
+        std::string type(contentType);
+        std::string::size_type pos = type.find("charset=");
+        if (pos != std::string::npos) {
+            pos += 8;
+            std::string::size_type stop = type.find_first_of("; \t\r\n", pos);
+            charset = type.substr(pos, stop == std::string::npos ? stop : stop - pos);
+            if (charset.size() >= 2 &&
+                ((charset.front() == '"' && charset.back() == '"') ||
+                 (charset.front() == '\'' && charset.back() == '\'')))
+                charset = charset.substr(1, charset.size() - 2);
+        }
+    }
+
+    if (headers)
+        curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+
+    if (code != CURLE_OK)
+        throw std::runtime_error(std::string("HTTP request failed: ") + curl_easy_strerror(code));
+    if (status < 200 || status >= 300)
+        throw std::runtime_error("HTTP request returned status " + std::to_string(status));
+
+    if (!charset.empty())
+        body = convert::CharsetConverter::ConvertToLocalEncoding(body, charset);
+
+    return body;
 }
 
 std::string HttpClient::postMIME(const std::string &request, const param_t &postdata, const header_t &header) {

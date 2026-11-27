@@ -19,8 +19,9 @@
  *
  */
 
-#define BOOST_ASIO_USE_BOOST_DATE_TIME_FOR_SOCKET_IOSTREAM
 #include "TcpClient.h"
+
+#include <chrono>
 
 #include <liblog++/Log.h>
 

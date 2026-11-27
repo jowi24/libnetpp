@@ -57,11 +57,7 @@ std::string TcpClient::readLine(bool removeNewline) {
 
 void TcpClient::expireStreamNow() {
 	if (stream) {
-#if BOOST_VERSION <= 108400
-		stream->expires_from_now(boost::posix_time::seconds(0));
-#else
 		stream->expires_after(std::chrono::seconds(0));
-#endif
 	}
 }
 
